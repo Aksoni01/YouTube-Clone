@@ -19,32 +19,40 @@ const registerUser = asynhandle( async (req,res) => {
 
     //check if user already exist: username,email
 
-    const existedUser = user.findOne({
+    const existedUser = await user.findOne({
         $or: [{email},  {username}]
     })
     if(existedUser){
         throw new ApiError(409,"User with email or username already exist");
     }
 
+    //console.log(req.files);
+
     //check for images,avatar compulsary
     const avatarLocalPath = req.files?.avatar[0]?.path    //multer give this take first objext as .path
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path
+
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length >0 ){
+        coverImageLocalPath= req.files.coverImage[0].path
+    }
 
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar is required")
     }
 
+  
     // upload them to cloudinary, check avatar is uploaded or not
-    const avatar = await uploadOncloudinary(avatarLocalPath)
+    const avatar = await uploadOncloudinary(avatarLocalPath);
     const coverImage = await uploadOncloudinary(coverImageLocalPath)
 
     if(!avatar){
-        throw new ApiError(400,"Avatar is required")
+        throw new ApiError(400,"Avatar is required here")
     }
 
     // create user objecct (for mongodb) - create entry in DB
     const User = await user.create({
-        fullName,
+        fullname,
         avatar: avatar.url,
         coverImage : coverImage?.url || "" , // we not check if it found or not so use ? ||
         email,

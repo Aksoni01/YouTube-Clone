@@ -32,7 +32,7 @@ const userSchema= new Schema({
     },
     coverImage:{
         type:String,
-        required: true,
+        //required: true,
     },
     watchHistory:[{
         type: Schema.Types.ObjectId,
