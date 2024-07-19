@@ -1,11 +1,11 @@
 // verify user is or not present
 
-import { user } from "../models/user.models";
-import { ApiError } from "../utils/ApiError";
-import { asynhandle } from "../utils/asyncHandler";
-import { jwt } from "jsonwebtoken";
+import { user } from "../models/user.models.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asynhandle } from "../utils/asyncHandler.js";
+import jwt from "jsonwebtoken";
 
-export const verifyJWT = asynhandle( async(req,res,next) =>{
+export const verifyJWT = asynhandle( async(req,_,next) =>{
     try {
         const token=req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
         if(!token){
