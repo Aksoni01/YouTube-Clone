@@ -65,6 +65,9 @@ userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password)
 }
 
+//Acess token  expire in short duration and refressh token in long duration
+// Only authenticated user can acess token(validate)
+
 userSchema.methods.generatedAccessToken = function(){
     return jwt.sign({
         _id: this._id,

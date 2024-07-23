@@ -1,8 +1,9 @@
 import { Schema } from "mongoose";
 import mongoose from "mongoose";
 
+//document created each time when we subscribe separatelty
 const subscripSchema= new Schema({
-    subcscriber:{
+    subscriber:{
         type:Schema.Types.ObjectId,  // one who is subscribing
         ref: "user"
     },

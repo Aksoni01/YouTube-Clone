@@ -4,6 +4,7 @@ import { user } from "../models/user.models.js";
 import { uploadOncloudinary } from "../utils/cloudnary.js";
 import { APiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import { Subscription } from "../models/subscriptions.models.js";
 
 //access token(15-20 min ...) and refreshtoken(saved in DB) is use so that we not give username?pass in every time to user
 
@@ -274,6 +275,7 @@ const updateUserAvatar = asynhandle(async(req,res)=>{
         throw new ApiError(400,"Avatar is missing")
     }
 
+    // Todo  delete old image 
     const avatar =await uploadOncloudinary(avatarLocalPath)
     if(!avatar.url){
         throw new ApiError(400,"Error while loading avatar")
@@ -318,4 +320,76 @@ const updateUserCoverImage = asynhandle(async(req,res)=>{
 
 })
 
-export {loginUser,registerUser,logoutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage}
+const getUserChannelProfile= asynhandle( async(req,res)=>{
+    const {username}= req.params
+    if(!username?.trim()){
+        throw new ApiError(400,"Username is not found")
+    }
+    const channel = await user.aggregate([
+        {
+            $match:{
+                username: username?.toLowerCase()
+            }
+        },
+        //check subcriber from a user profile to count its channel subscribers
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscriber"
+            }
+        },
+        // to count subscribers of a user that he subscribed
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField: "_id",
+                foreignField: "",
+                as: "subscribedTo"
+            }
+        },
+        // now to add additional field to original user
+        {
+            $addFields:{
+                // count subcribers from fiekld
+                subscriptionCount:{
+                    $size:"$subscriber" // field so use $
+                },
+                channelsSubscribedToCount:{
+                    $size:"$subscribedTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in: [req.User?._id,"$subscriber"]},
+                        then:true,
+                        else: false
+                    }
+                }
+            }
+        },
+        // projection only selecteed value
+        {
+            $project:{
+                fullname:1,
+                username:1,
+                subscriptionCount:1,
+                channelsSubscribedToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage:1,
+                email: 1
+            }
+        }
+    ])
+    //check console log aggregate 
+    if(!channel?.length){
+        throw new ApiError(404,"channel does not exist")
+    }
+    return res.status(200).
+    json(new APiResponse(200,channel[0],"user channel fetched sucessfully"))
+
+})  
+
+
+export {loginUser,registerUser,logoutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}
