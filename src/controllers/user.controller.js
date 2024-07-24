@@ -5,6 +5,7 @@ import { uploadOncloudinary } from "../utils/cloudnary.js";
 import { APiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import { Subscription } from "../models/subscriptions.models.js";
+import mongoose from "mongoose";
 
 //access token(15-20 min ...) and refreshtoken(saved in DB) is use so that we not give username?pass in every time to user
 
@@ -391,5 +392,53 @@ const getUserChannelProfile= asynhandle( async(req,res)=>{
 
 })  
 
+const getWatchHistory = asynhandle( async(req,res)=>{
+    const User = await user.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.User._id)
+            }
+        },
+        {
+            $lookup:{
+                from :"Video",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as: "watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullname:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                            
+                        }
+                    },
+                    // for better lookup from array
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
 
-export {loginUser,registerUser,logoutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}
+    return res.status(200).
+    json(new APiResponse(200,User[0].watchHistory,"Watch History fetched sucessfully"))
+})
+
+export {loginUser,registerUser,logoutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage,getUserChannelProfile,getWatchHistory}
