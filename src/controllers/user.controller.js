@@ -441,4 +441,4 @@ const getWatchHistory = asynhandle( async(req,res)=>{
     json(new APiResponse(200,User[0].watchHistory,"Watch History fetched sucessfully"))
 })
 
-export {loginUser,registerUser,logoutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateUserAvatar,updateUserCoverImage,getUserChannelProfile,getWatchHistory}
+export {loginUser,registerUser,logoutUser,refreshAcessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile,getWatchHistory}
