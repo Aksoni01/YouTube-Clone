@@ -158,8 +158,8 @@ const logoutUser = asynhandle( async(req,res) =>{
     //find user and  //reset refresh token
     await user.findByIdAndUpdate(
         req.User._id,{
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1 //flag pass remove the field from document
             }
         },
         {
@@ -338,7 +338,7 @@ const getUserChannelProfile= asynhandle( async(req,res)=>{
                 from:"subscriptions",
                 localField: "_id",
                 foreignField: "channel",
-                as: "subscriber"
+                as: "subscribers"
             }
         },
         // to count subscribers of a user that he subscribed
@@ -346,7 +346,7 @@ const getUserChannelProfile= asynhandle( async(req,res)=>{
             $lookup:{
                 from:"subscriptions",
                 localField: "_id",
-                foreignField: "",
+                foreignField: "subscriber",
                 as: "subscribedTo"
             }
         },
@@ -355,14 +355,14 @@ const getUserChannelProfile= asynhandle( async(req,res)=>{
             $addFields:{
                 // count subcribers from fiekld
                 subscriptionCount:{
-                    $size:"$subscriber" // field so use $
+                    $size:"$subscribers" // field so use $
                 },
                 channelsSubscribedToCount:{
                     $size:"$subscribedTo"
                 },
                 isSubscribed:{
                     $cond:{
-                        if:{$in: [req.User?._id,"$subscriber"]},
+                        if:{$in: [req.User?._id,"$subscribers.subscriber"]},
                         then:true,
                         else: false
                     }
