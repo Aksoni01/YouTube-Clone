@@ -1,7 +1,7 @@
 import { asynhandle } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { user } from "../models/user.models.js";
-import { uploadOncloudinary } from "../utils/cloudnary.js";
+import { deleteOncloudinary, uploadOncloudinary } from "../utils/cloudnary.js";
 import { APiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import { Subscription } from "../models/subscriptions.models.js";
@@ -82,8 +82,14 @@ const registerUser = asynhandle( async (req,res) => {
     // create user objecct (for mongodb) - create entry in DB
     const User = await user.create({
         fullname,
-        avatar: avatar.url,
-        coverImage : coverImage?.url || "" , // we not check if it found or not so use ? ||
+        avatar:  {
+            public_id: avatar.public_id, 
+            url: avatar.secure_url,  // cloudanray service url using
+        }, 
+        coverImage : {
+            public_id: coverImage?.public_id, 
+            url: coverImage?.secure_url || ""  // cloudanray service url using
+        }, 
         email,
         password,
         username : username.toLowerCase()
@@ -261,7 +267,7 @@ const updateAccountDetails= asynhandle(async(req,res)=>{
                 email:email
             }
         },{new:true}
-    ).select("-password")
+    ).select("-password -refreshToken")
 
 
     return res.status(200).
@@ -281,16 +287,26 @@ const updateUserAvatar = asynhandle(async(req,res)=>{
     if(!avatar.url){
         throw new ApiError(400,"Error while loading avatar")
     }
+    const User = await user.findById(req.User._id).select("avatar");
+    const avatarTodelete = User.avatar.public_id;
 
-    const User= await user.findByIdAndUpdate(
+    const updateUser= await user.findByIdAndUpdate(
         req.User?._id,
         {
             $set:{
-                avatar: avatar.url
+                avatar: {
+                    public_id: avatar.public_id,
+                   url: avatar.secure_url
+                }
             }
         },
         {new:true}
     ).select("-password")
+
+    if(avatarTodelete && updateUser.avatar.public_id){
+        await deleteOncloudinary(avatarTodelete);
+    }
+
     return res.status(200).
     json(new APiResponse(200,User,"Avatar  is updated sucessfully"))
 
@@ -306,7 +322,11 @@ const updateUserCoverImage = asynhandle(async(req,res)=>{
         throw new ApiError(400,"Error while loading cover image")
     }
 
-    const User = await user.findByIdAndUpdate(
+    const User= await user.findById(req.User._id).select("coverImage");
+
+    const coverImageTodelete = User.coverImage.public_id;
+
+    const updatedUser = await user.findByIdAndUpdate(
         req.User?._id,
         {
             $set:{
@@ -315,6 +335,10 @@ const updateUserCoverImage = asynhandle(async(req,res)=>{
         },
         {new:true}
     ).select("-password")
+
+    if(coverImageTodelete && updateUser.coverImage.public_id){
+        await deleteOncloudinary(coverImageTodelete);
+    }
 
     return res.status(200).
     json(new APiResponse(200,User,"CoverImage is updated sucessfully"))
@@ -335,10 +359,10 @@ const getUserChannelProfile= asynhandle( async(req,res)=>{
         //check subcriber from a user profile to count its channel subscribers
         {
             $lookup:{
-                from:"subscriptions",
-                localField: "_id",
-                foreignField: "channel",
-                as: "subscribers"
+                from:"subscriptions", // collections to join with
+                localField: "_id",  // field from current collections(user) to match
+                foreignField: "channel",  // field from subcrciotions collections to match
+                as: "subscribers"  // Alias for joined data
             }
         },
         // to count subscribers of a user that he subscribed

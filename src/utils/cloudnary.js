@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import exp from 'constants';
 import fs from "fs";
+import { resourceLimits } from 'worker_threads';
 
     // Configuration
 cloudinary.config({ 
@@ -27,5 +28,21 @@ const uploadOncloudinary = async (localFilePath) =>{
         return null;
     }
 }
+
+const deleteOncloudinary = async ( public_id,resource_type="image")=>{
+    try {
+        if(!public_id) return null;
+
+        //deletion file 
+        const deleted=await cloudinary.uploader.destroy(public_id,{
+            resource_type:`${resource_type}`
+        });
+
+    } catch (error) {
+        return error;
+        console.log("Deletion failed on cloudinary",error);
+        
+    }
+} 
  
-export {uploadOncloudinary}
+export {deleteOncloudinary,uploadOncloudinary}

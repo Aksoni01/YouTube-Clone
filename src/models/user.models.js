@@ -26,13 +26,18 @@ const userSchema= new Schema({
         index : true // make thi field searchale
     },
     avatar:{
-        type:String, // cloudanray service url using
+        type:{
+            public_id: String, 
+            url: String,  // cloudinary service url using
+        },
         required: true,
         unique:true,
     },
     coverImage:{
-        type:String,
-        //required: true,
+       type:{
+            public_id: String, 
+            url: String,  // cloudinary service url using
+        },
     },
     watchHistory:[{
         type: Schema.Types.ObjectId,
